@@ -128,7 +128,7 @@ class DataFrameGroupBy(ClassLogger):
         )
 
     def ffill(self, limit=None):
-        return self.fillna(limit=limit, method='ffill')
+        return self.fillna(limit=limit, method="ffill")
 
     def sem(self, ddof=1):
         return self._wrap_aggregation(
@@ -143,7 +143,8 @@ class DataFrameGroupBy(ClassLogger):
         normalize: bool = False,
         sort: bool = True,
         ascending: bool = False,
-        dropna: bool = True):
+        dropna: bool = True,
+    ):
         # dfGroupBy.value_counts nearly semantically
         # equivalent to df.value_counts([<by>, <other...>]).sort_index()
         # it returns a MultiIndex Series which needs to be converted to
@@ -155,11 +156,17 @@ class DataFrameGroupBy(ClassLogger):
         for c in self._columns.values.tolist():
             if c not in subset:
                 subset.append(c)
-        return self._df.value_counts(subset=subset, 
-            normalize=normalize, 
-            sort=sort, 
-            ascending=ascending, 
-            dropna=dropna)._to_pandas().sort_index(level=0, sort_remaining=False)
+        return (
+            self._df.value_counts(
+                subset=subset,
+                normalize=normalize,
+                sort=sort,
+                ascending=ascending,
+                dropna=dropna,
+            )
+            ._to_pandas()
+            .sort_index(level=0, sort_remaining=False)
+        )
 
     def mean(self, numeric_only=None):
         return self._check_index(
@@ -513,7 +520,7 @@ class DataFrameGroupBy(ClassLogger):
         )
 
     def bfill(self, limit=None):
-        return self.fillna(limit=limit, method='bfill')
+        return self.fillna(limit=limit, method="bfill")
 
     def idxmin(self):
         return self._default_to_pandas(lambda df: df.idxmin())
@@ -674,7 +681,7 @@ class DataFrameGroupBy(ClassLogger):
         return self._default_to_pandas(lambda df: df.corrwith)
 
     def pad(self, limit=None):
-        return self.fillna(limit=limit, method='pad')
+        return self.fillna(limit=limit, method="pad")
 
     def max(self, numeric_only=False, min_count=-1):
         return self._wrap_aggregation(
