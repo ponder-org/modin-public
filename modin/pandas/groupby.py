@@ -145,16 +145,18 @@ class DataFrameGroupBy(ClassLogger):
         ascending: bool = False,
         dropna: bool = True,
     ):
+        # Compatibility Notes:
         # dfGroupBy.value_counts nearly semantically
         # equivalent to df.value_counts([<by>, <other...>]).sort_index()
         # it returns a MultiIndex Series which needs to be converted to
         # pandas for sort_index.
         # 
+        # Semantic Exceptions:
         # normalize does not work; it will return the normalized results
-        #     across the entire dataframe, not within the smallest level
+        #     across the entire dataframe, not within the sub levels
         # DataFrame(as_index=False) does not work. The default is True
-        #     calling this function will result in a Series rather than
-        #     a DataFrame
+        #     calling this function will always result in a Series rather 
+        #     than a DataFrame
         #
         if is_list_like(self._by):
             subset = self._by
