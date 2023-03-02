@@ -145,6 +145,20 @@ class DataFrameGroupBy(ClassLogger):
         ascending: bool = False,
         dropna: bool = True,
     ):
+        # Normalization needs to take place on
+        # the DataFrameGroupBy object itself
+        # and cannot be pushed down
+        if normalize or self._as_index == False:
+            return self._default_to_pandas(
+                lambda df: df.value_counts(
+                    subset=subset,
+                    normalize=normalize,
+                    sort=sort,
+                    ascending=ascending,
+                    dropna=dropna,
+                )
+        )
+        
         # dfGroupBy.value_counts nearly semantically
         # equivalent to df.value_counts([<by>, <other...>]).sort_index()
         # it returns a MultiIndex Series which needs to be converted to
@@ -159,7 +173,7 @@ class DataFrameGroupBy(ClassLogger):
         return (
             self._df.value_counts(
                 subset=subset,
-                normalize=normalize,
+                normalize=False,
                 sort=sort,
                 ascending=ascending,
                 dropna=dropna,
