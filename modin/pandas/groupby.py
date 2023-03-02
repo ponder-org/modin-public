@@ -158,7 +158,14 @@ class DataFrameGroupBy(ClassLogger):
         return self._default_to_pandas(lambda df: df.plot)
 
     def ohlc(self):
-        return self._default_to_pandas(lambda df: df.ohlc())
+        from .dataframe import DataFrame
+        if isinstance(self._df, DataFrame):
+            raise NotImplementedError("groupby.ohlc() not supported for dataframes!")
+        else:
+            return self._wrap_aggregation(
+                type(self._query_compiler).groupby_ohlc,
+                numeric_only=False,
+            )
 
     def __bytes__(self):
         """
