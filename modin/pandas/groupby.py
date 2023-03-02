@@ -162,9 +162,15 @@ class DataFrameGroupBy(ClassLogger):
         if isinstance(self._df, DataFrame):
             raise NotImplementedError("groupby.ohlc() not supported for dataframes!")
         else:
-            return self._wrap_aggregation(
-                type(self._query_compiler).groupby_ohlc,
-                numeric_only=False,
+            # Cannot use _wrap_aggregation() since assumed output is a Series
+            return DataFrame(
+                query_compiler=self._query_compiler.groupby_ohlc(
+                    by=self._by,
+                    axis=self._axis,
+                    groupby_kwargs=self._kwargs,
+                    agg_args=[],
+                    agg_kwargs={},
+                ),
             )
 
     def __bytes__(self):
