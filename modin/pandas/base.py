@@ -899,12 +899,22 @@ class BasePandasDataset(ClassLogger):
                     FutureWarning,
                     stacklevel=2,
                 )
+
+        output_pandas_df = self._to_pandas().apply(
+            func,
+            axis,
+            args=args,
+            raw=raw,
+            result_type=result_type,
+            **kwds,
+        )
         query_compiler = self._query_compiler.apply(
             cloudpickle.dumps(func),
             axis,
             args=args,
             raw=raw,
             result_type=result_type,
+            output_meta=output_pandas_df,
             **kwds,
         )
         return query_compiler
