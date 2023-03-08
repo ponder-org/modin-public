@@ -388,10 +388,13 @@ class DataFrame(BasePandasDataset):
 
         if not callable(func):
             raise ValueError("'{0}' object is not callable".format(type(func)))
+
         output_meta = self._to_pandas().applymap(func, na_action=na_action, **kwargs)
+        f = lambda x: x if pandas.isnull(x) and na_action == "ignore" else func(x, **kwargs)
+
         return DataFrame(
             query_compiler=self._query_compiler.applymap(
-                cloudpickle.dumps(func),
+                cloudpickle.dumps(f),
                 na_action=na_action,
                 output_meta=output_meta,
                 **kwargs,
