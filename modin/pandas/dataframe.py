@@ -388,6 +388,9 @@ class DataFrame(BasePandasDataset):
 
         if not callable(func):
             raise ValueError("'{0}' object is not callable".format(type(func)))
+        if na_action not in ("ignore", None):
+            raise ValueError(f"na_action must be 'ignore' or None. Got {na_action}")
+
         output_meta = self._to_pandas().applymap(func, na_action=na_action, **kwargs)
         return DataFrame(
             query_compiler=self._query_compiler.applymap(
