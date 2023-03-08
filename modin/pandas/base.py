@@ -873,6 +873,7 @@ class BasePandasDataset(ClassLogger):
         Apply a function along an axis of the `BasePandasDataset`.
         """
         import cloudpickle
+        import pickle
 
         def error_raiser(msg, exception):
             """Convert passed exception to the same type as pandas do and raise it."""
@@ -909,7 +910,7 @@ class BasePandasDataset(ClassLogger):
             **kwds,
         )
         query_compiler = self._query_compiler.apply(
-            cloudpickle.dumps(func),
+            cloudpickle.dumps(func, protocol=pickle.DEFAULT_PROTOCOL),
             axis,
             args=args,
             raw=raw,

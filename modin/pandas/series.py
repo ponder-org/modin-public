@@ -1204,6 +1204,7 @@ class Series(BasePandasDataset):
         Map values of Series according to input correspondence.
         """
         import cloudpickle
+        import pickle
 
         if not callable(arg) and hasattr(arg, "get"):
             mapper = arg
@@ -1212,11 +1213,15 @@ class Series(BasePandasDataset):
                 return mapper.get(s, np.nan)
 
         output_meta = self._to_pandas().map(arg, na_action)
-        func = cloudpickle.dumps(
-            lambda s: arg(s) if pandas.isnull(s) is not True or na_action is None else s
+
+        func = (
+            lambda s: arg(s) if not pandas.isnull(s) or not na_action else s
         )
         return self.__constructor__(
-            query_compiler=self._query_compiler.applymap(func, output_meta=output_meta)
+            query_compiler=self._query_compiler.applymap(
+                cloudpickle.dumps(func, protocol=pickle.DEFAULT_PROTOCOL),
+                output_meta=output_meta,
+            )
         )
 
     def memory_usage(self, index=True, deep=False):  # noqa: PR01, RT01, D200
