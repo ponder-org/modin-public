@@ -386,9 +386,10 @@ class DataFrame(BasePandasDataset):
     def applymap(self, func, na_action: Optional[str] = None, **kwargs):
         if not callable(func):
             raise ValueError("'{0}' object is not callable".format(type(func)))
+        output_meta = self._to_pandas().applymap(func, na_action=na_action, **kwargs)
         return DataFrame(
             query_compiler=self._query_compiler.applymap(
-                func, na_action=na_action, **kwargs
+                func, na_action=na_action, output_meta=output_meta, **kwargs
             )
         )
 
