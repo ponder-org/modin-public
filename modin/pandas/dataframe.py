@@ -384,12 +384,17 @@ class DataFrame(BasePandasDataset):
         return DataFrame(query_compiler=self._query_compiler.add_suffix(suffix))
 
     def applymap(self, func, na_action: Optional[str] = None, **kwargs):
+        import cloudpickle
+
         if not callable(func):
             raise ValueError("'{0}' object is not callable".format(type(func)))
         output_meta = self._to_pandas().applymap(func, na_action=na_action, **kwargs)
         return DataFrame(
             query_compiler=self._query_compiler.applymap(
-                func, na_action=na_action, output_meta=output_meta, **kwargs
+                cloudpickle.dumps(func),
+                na_action=na_action,
+                output_meta=output_meta,
+                **kwargs,
             )
         )
 
