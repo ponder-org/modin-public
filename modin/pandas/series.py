@@ -1215,7 +1215,7 @@ class Series(BasePandasDataset):
         output_meta = self._to_pandas().map(arg, na_action)
 
         func = (
-            lambda s: arg(s) if not pandas.isnull(s) or not na_action else s
+            lambda s: s if pandas.isnull(s) and na_action else arg(s)
         )
         return self.__constructor__(
             query_compiler=self._query_compiler.applymap(
