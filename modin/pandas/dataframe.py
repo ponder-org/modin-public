@@ -386,6 +386,14 @@ class DataFrame(BasePandasDataset):
     def applymap(self, func, na_action: Optional[str] = None, **kwargs):
         import cloudpickle
         import pickle
+        import sys
+
+        if sys.version_info.major != 3 and sys.version_info.minor != 8:
+            version = ".".join(map(str, sys.version_info[:3]))
+            warnings.warn(
+                f"current Python version is {version}, but expected 3.8. User defined"
+                + " functions may not work as expected due to compatibility issues."
+            )
 
         if not callable(func):
             raise ValueError("'{0}' object is not callable".format(type(func)))
