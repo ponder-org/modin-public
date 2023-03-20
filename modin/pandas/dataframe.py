@@ -2024,7 +2024,7 @@ class DataFrame(BasePandasDataset):
         """
         Stack the prescribed level(s) from columns to index.
         """
-        is_multiindex = len(self.index.names) > 1
+        is_multiindex = isinstance(self.columns, pandas.MultiIndex)
         if not is_multiindex or (
             is_multiindex and is_list_like(level) and len(level) == self.columns.nlevels
         ):
