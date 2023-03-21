@@ -74,16 +74,12 @@ def fix_dtypes_and_determine_return(
     query_compiler_in, _ndim, dtype=None, out=None, where=True
 ):
     if dtype is not None:
-        query_compiler_in = query_compiler_in.astype(
-            {col_name: dtype for col_name in query_compiler_in.columns}
-        )
+        query_compiler_in = maybe_convert_query_compiler_types(query_compiler_in, dtype)
     result = array(_query_compiler=query_compiler_in, _ndim=_ndim)
     if out is not None:
         out = try_convert_from_interoperable_type(out, copy=False)
         check_can_broadcast_to_output(result, out)
-        result._query_compiler = result._query_compiler.astype(
-            {col_name: out.dtype for col_name in result._query_compiler.columns}
-        )
+        result._query_compiler = maybe_convert_query_compiler_types(result._query_compiler, out.dtype)
         if isinstance(where, array):
             out._update_inplace(where.where(result, out)._query_compiler)
         elif where:
@@ -100,6 +96,17 @@ def fix_dtypes_and_determine_return(
 
         return zeros_like(result)
     return result
+
+def maybe_convert_query_compiler_types(query_compiler_in, new_dtype):
+    cols_with_wrong_dtype = query_compiler_in.dtypes != new_dtype
+    if cols_with_wrong_dtype.any():
+        return query_compiler_in.astype(
+            {
+                col_name: new_dtype
+                for col_name in query_compiler_in.columns[cols_with_wrong_dtype]
+            }
+        )
+    return query_compiler_in
 
 
 class array(object):
@@ -127,6 +134,7 @@ class array(object):
         like=numpy._NoValue,
         _query_compiler=None,
         _ndim=None,
+        _transposed=False,
     ):
         self._siblings = []
         ErrorMessage.single_warning(
@@ -192,14 +200,8 @@ class array(object):
         if not self._query_compiler.columns.equals(desired_columns):
             self._query_compiler.columns = desired_columns
         new_dtype = new_dtype if dtype is None else dtype
-        cols_with_wrong_dtype = self._query_compiler.dtypes != new_dtype
-        if cols_with_wrong_dtype.any():
-            self._query_compiler = self._query_compiler.astype(
-                {
-                    col_name: new_dtype
-                    for col_name in self._query_compiler.columns[cols_with_wrong_dtype]
-                }
-            )
+        if not _transposed:
+            self._query_compiler = maybe_convert_query_compiler_types(self._query_compiler, new_dtype)
         self.indexer = None
 
     def __getitem__(self, key):
@@ -667,11 +669,9 @@ class array(object):
             else (out.dtype if out is not None else self.dtype)
         )
         check_kwargs(order=order, casting=casting, subok=subok, where=where)
-        result = self._query_compiler.astype(
-            {col_name: out_dtype for col_name in self._query_compiler.columns}
-        ).abs()
+        result = maybe_convert_query_compiler_types(self._query_compiler, out_dtype).abs()
         if dtype is not None:
-            result = result.astype({col_name: dtype for col_name in result.columns})
+            result = maybe_convert_query_compiler_types(result, dtype)
         if out is not None:
             out = try_convert_from_interoperable_type(out, copy=False)
             check_can_broadcast_to_output(self, out)
@@ -913,12 +913,10 @@ class array(object):
             else (out.dtype if out is not None else self.dtype)
         )
         check_kwargs(order=order, casting=casting, subok=subok, where=where)
-        result = self._query_compiler.astype(
-            {col_name: out_dtype for col_name in self._query_compiler.columns}
-        )
+        result = maybe_convert_query_compiler_types(self._query_compiler, out_dtype)
         result = getattr(result, opName)(*args)
         if dtype is not None:
-            result = result.astype({col_name: dtype for col_name in result.columns})
+            result = maybe_convert_query_compiler_types(result, dtype)
         if out is not None:
             out = try_convert_from_interoperable_type(out)
             check_can_broadcast_to_output(self, out)
@@ -936,7 +934,7 @@ class array(object):
         subok=True,
     ):
         return self._unary_math_operator(
-            "_tanh",
+            "tanh",
             out=out,
             where=where,
             casting=casting,
@@ -955,7 +953,7 @@ class array(object):
         subok=True,
     ):
         return self._unary_math_operator(
-            "_exp",
+            "exp",
             out=out,
             where=where,
             casting=casting,
@@ -974,7 +972,7 @@ class array(object):
         subok=True,
     ):
         return self._unary_math_operator(
-            "_sqrt",
+            "sqrt",
             out=out,
             where=where,
             casting=casting,
@@ -1237,9 +1235,7 @@ class array(object):
         if isinstance(where, array):
             result = self._compute_masked_variance(where, out_dtype, axis, ddof)
         else:
-            result = self._query_compiler.astype(
-                {col_name: out_dtype for col_name in self._query_compiler.columns}
-            ).var(axis=axis, skipna=False, ddof=ddof)
+            result = maybe_convert_query_compiler_types(self._query_compiler, out_dtype).var(axis=axis, skipna=False, ddof=ddof)
         new_ndim = self._ndim - 1 if not keepdims else self._ndim
         if new_ndim == 0:
             return result.to_numpy()[0, 0] if truthy_where else numpy.nan
@@ -1266,21 +1262,21 @@ class array(object):
         # NumPy would propagate NaN, and swap out those values in our result
         # with NaN.
         target = mask.where(self, numpy.nan)._query_compiler
-        target = target.astype(
-            {col_name: output_dtype for col_name in target.columns}
-        ).mean(axis=axis)
+        target = maybe_convert_query_compiler_types(target, output_dtype).mean(axis=axis)
         na_propagation_mask = mask.where(self, 0)._query_compiler
         na_propagation_mask = na_propagation_mask.sum(axis=axis, skipna=False)
         target = target.where(na_propagation_mask.notna(), numpy.nan)
         return target
 
     def mean(self, axis=None, dtype=None, out=None, keepdims=None, *, where=True):
+        print("ENTERED")
         out_dtype = (
             dtype
             if dtype is not None
             else (out.dtype if out is not None else self.dtype)
         )
         out_type = getattr(out_dtype, "type", out_dtype)
+        print("HAVE OUT_TYPE:", out_type)
         if isinstance(where, array) and issubclass(out_type, numpy.integer):
             out_dtype = numpy.float64
         if axis is not None and axis < 0:
@@ -1292,15 +1288,14 @@ class array(object):
             axis = new_axis
         check_kwargs(keepdims=keepdims, where=where)
         truthy_where = bool(where)
+        print("GOT WHERE")
         if self._ndim == 1:
             if axis == 1:
                 raise numpy.AxisError(1, 1)
             if isinstance(where, array):
                 result = self._compute_masked_mean(where, out_dtype, 0)
             else:
-                result = self._query_compiler.astype(
-                    {col_name: out_dtype for col_name in self._query_compiler.columns}
-                ).mean(axis=0, skipna=False)
+                result = maybe_convert_query_compiler_types(self._query_compiler, out_dtype).mean(axis=0, skipna=False)
             if keepdims:
                 if out is not None and out.shape != (1,):
                     raise ValueError(
@@ -1376,17 +1371,22 @@ class array(object):
             return result if truthy_where else numpy.nan
         if axis > 1:
             raise numpy.AxisError(axis, 2)
+        print("FIGURED OUT WE'RE DOING AXIS MEAN, AND HAVE GOOD AXIS")
         if isinstance(where, array):
             result = self._compute_masked_mean(where, out_dtype, axis)
         else:
-            result = self._query_compiler.astype(
-                {col_name: out_dtype for col_name in self._query_compiler.columns}
-            ).mean(axis=axis, skipna=False)
+            print("HEADING INTO ASTYPE")
+            result = maybe_convert_query_compiler_types(self._query_compiler, out_dtype)
+            print("OUT OF ASTYPE")
+            result = result.mean(axis=axis, skipna=False)
+            print("DONE WITH MEAN!")
         new_ndim = self._ndim - 1 if not keepdims else self._ndim
         if new_ndim == 0:
             return result.to_numpy()[0, 0] if truthy_where else numpy.nan
         if not keepdims and axis != 1:
+            print("GOTTA .T")
             result = result.transpose()
+            print("DONE .T")
         if out is not None:
             out._update_inplace((numpy.ones_like(out) * numpy.nan)._query_compiler)
         if truthy_where or out is not None:
@@ -1420,19 +1420,13 @@ class array(object):
         )
         check_kwargs(order=order, subok=subok, casting=casting, where=where)
         if is_scalar(x2):
-            result = self._query_compiler.astype(
-                {col_name: out_dtype for col_name in self._query_compiler.columns}
-            ).add(x2)
+            result = maybe_convert_query_compiler_types(self._query_compiler, out_dtype).add(x2)
             return fix_dtypes_and_determine_return(
                 result, self._ndim, dtype, out, where
             )
         caller, callee, new_ndim, kwargs = self._binary_op(x2)
-        caller_qc = caller._query_compiler.astype(
-            {col_name: out_dtype for col_name in caller._query_compiler.columns}
-        )
-        callee_qc = callee._query_compiler.astype(
-            {col_name: out_dtype for col_name in callee._query_compiler.columns}
-        )
+        caller_qc = maybe_convert_query_compiler_types(caller._query_compiler, out_dtype)
+        callee_qc = maybe_convert_query_compiler_types(callee._query_compiler, out_dtype)
         result = caller_qc.add(callee_qc, **kwargs)
         return fix_dtypes_and_determine_return(result, new_ndim, dtype, out, where)
 
@@ -1471,21 +1465,15 @@ class array(object):
         check_kwargs(order=order, subok=subok, casting=casting, where=where)
         if is_scalar(x2):
             return fix_dtypes_and_determine_return(
-                self._query_compiler.astype(
-                    {col_name: out_dtype for col_name in self._query_compiler.columns}
-                ).truediv(x2),
+                maybe_convert_query_compiler_types(self._query_compiler, out_dtype).truediv(x2),
                 self._ndim,
                 dtype,
                 out,
                 where,
             )
         caller, callee, new_ndim, kwargs = self._binary_op(x2)
-        caller_qc = caller._query_compiler.astype(
-            {col_name: out_dtype for col_name in caller._query_compiler.columns}
-        )
-        callee_qc = callee._query_compiler.astype(
-            {col_name: out_dtype for col_name in callee._query_compiler.columns}
-        )
+        caller_qc = maybe_convert_query_compiler_types(caller._query_compiler, out_dtype)
+        callee_qc = maybe_convert_query_compiler_types(callee._query_compiler, out_dtype)
         if caller._query_compiler != self._query_compiler:
             # In this case, we are doing an operation that looks like this 1D_object/2D_object.
             # For Modin to broadcast directly, we have to swap it so that the operation is actually
@@ -1520,21 +1508,15 @@ class array(object):
         check_kwargs(order=order, subok=subok, casting=casting, where=where)
         if is_scalar(x2):
             return fix_dtypes_and_determine_return(
-                self._query_compiler.astype(
-                    {col_name: out_dtype for col_name in self._query_compiler.columns}
-                ).rtruediv(x2),
+                maybe_convert_query_compiler_types(self._query_compiler, out_dtype).rtruediv(x2),
                 self._ndim,
                 dtype,
                 out,
                 where,
             )
         caller, callee, new_ndim, kwargs = self._binary_op(x2)
-        caller_qc = caller._query_compiler.astype(
-            {col_name: out_dtype for col_name in caller._query_compiler.columns}
-        )
-        callee_qc = callee._query_compiler.astype(
-            {col_name: out_dtype for col_name in callee._query_compiler.columns}
-        )
+        caller_qc = maybe_convert_query_compiler_types(caller._query_compiler, out_dtype)
+        callee_qc = maybe_convert_query_compiler_types(callee._query_compiler, out_dtype)
         if caller._query_compiler != self._query_compiler:
             result = caller_qc.truediv(callee_qc, **kwargs)
         else:
@@ -1563,9 +1545,7 @@ class array(object):
         )
         check_kwargs(order=order, subok=subok, casting=casting, where=where)
         if is_scalar(x2):
-            result = self._query_compiler.astype(
-                {col_name: out_dtype for col_name in self._query_compiler.columns}
-            ).floordiv(x2)
+            result = maybe_convert_query_compiler_types(self._query_compiler, out_dtype).floordiv(x2)
             if x2 == 0 and numpy.issubdtype(out_dtype, numpy.integer):
                 # NumPy's floor_divide by 0 works differently from pandas', so we need to fix
                 # the output.
@@ -1578,12 +1558,8 @@ class array(object):
                 result, self._ndim, dtype, out, where
             )
         caller, callee, new_ndim, kwargs = self._binary_op(x2)
-        caller_qc = caller._query_compiler.astype(
-            {col_name: out_dtype for col_name in caller._query_compiler.columns}
-        )
-        callee_qc = callee._query_compiler.astype(
-            {col_name: out_dtype for col_name in callee._query_compiler.columns}
-        )
+        caller_qc = maybe_convert_query_compiler_types(caller._query_compiler, out_dtype)
+        callee_qc = maybe_convert_query_compiler_types(callee._query_compiler, out_dtype)
         if caller._query_compiler != self._query_compiler:
             # Modin does not correctly support broadcasting when the caller of the function is
             # a Series (1D), and the operand is a Dataframe (2D). We cannot workaround this using
@@ -1629,21 +1605,15 @@ class array(object):
         check_kwargs(order=order, subok=subok, casting=casting, where=where)
         if is_scalar(x2):
             return fix_dtypes_and_determine_return(
-                self._query_compiler.astype(
-                    {col_name: out_dtype for col_name in self._query_compiler.columns}
-                ).pow(x2),
+                maybe_convert_query_compiler_types(self._query_compiler, out_dtype).pow(x2),
                 self._ndim,
                 dtype,
                 out,
                 where,
             )
         caller, callee, new_ndim, kwargs = self._binary_op(x2)
-        caller_qc = caller._query_compiler.astype(
-            {col_name: out_dtype for col_name in caller._query_compiler.columns}
-        )
-        callee_qc = callee._query_compiler.astype(
-            {col_name: out_dtype for col_name in callee._query_compiler.columns}
-        )
+        caller_qc = maybe_convert_query_compiler_types(caller._query_compiler, out_dtype)
+        callee_qc = maybe_convert_query_compiler_types(callee._query_compiler, out_dtype)
         if caller._query_compiler != self._query_compiler:
             # Modin does not correctly support broadcasting when the caller of the function is
             # a Series (1D), and the operand is a Dataframe (2D). We cannot workaround this using
@@ -1678,9 +1648,7 @@ class array(object):
             if axis == 1:
                 raise numpy.AxisError(1, 1)
             target = where.where(self, 1) if isinstance(where, array) else self
-            result = target._query_compiler.astype(
-                {col_name: out_dtype for col_name in target._query_compiler.columns}
-            ).prod(axis=0, skipna=False)
+            result = maybe_convert_query_compiler_types(target._query_compiler, out_dtype).prod(axis=0, skipna=False)
             result = result.mul(initial)
             if keepdims:
                 if out is not None:
@@ -1738,9 +1706,7 @@ class array(object):
         if axis > 1:
             raise numpy.AxisError(axis, 2)
         target = where.where(self, 1) if isinstance(where, array) else self
-        result = target._query_compiler.astype(
-            {col_name: out_dtype for col_name in target._query_compiler.columns}
-        ).prod(axis=axis, skipna=False)
+        result = maybe_convert_query_compiler_types(target._query_compiler, out_dtype).prod(axis=axis, skipna=False)
         result = result.mul(initial)
         new_ndim = self._ndim - 1 if not keepdims else self._ndim
         if new_ndim == 0:
@@ -1783,21 +1749,15 @@ class array(object):
         check_kwargs(order=order, subok=subok, casting=casting, where=where)
         if is_scalar(x2):
             return fix_dtypes_and_determine_return(
-                self._query_compiler.astype(
-                    {col_name: out_dtype for col_name in self._query_compiler.columns}
-                ).mul(x2),
+                maybe_convert_query_compiler_types(self._query_compiler, out_dtype).mul(x2),
                 self._ndim,
                 dtype,
                 out,
                 where,
             )
         caller, callee, new_ndim, kwargs = self._binary_op(x2)
-        caller_qc = caller._query_compiler.astype(
-            {col_name: out_dtype for col_name in caller._query_compiler.columns}
-        )
-        callee_qc = callee._query_compiler.astype(
-            {col_name: out_dtype for col_name in callee._query_compiler.columns}
-        )
+        caller_qc = maybe_convert_query_compiler_types(caller._query_compiler, out_dtype)
+        callee_qc = maybe_convert_query_compiler_types(callee._query_compiler, out_dtype)
         result = caller_qc.mul(callee_qc, **kwargs)
         return fix_dtypes_and_determine_return(result, new_ndim, dtype, out, where)
 
@@ -1905,9 +1865,7 @@ class array(object):
         )
         check_kwargs(order=order, subok=subok, casting=casting, where=where)
         if is_scalar(x2):
-            result = self._query_compiler.astype(
-                {col_name: out_dtype for col_name in self._query_compiler.columns}
-            ).mod(x2)
+            result = maybe_convert_query_compiler_types(self._query_compiler, out_dtype).mod(x2)
             if x2 == 0 and numpy.issubdtype(out_dtype, numpy.integer):
                 # NumPy's remainder by 0 works differently from pandas', so we need to fix
                 # the output.
@@ -1923,12 +1881,8 @@ class array(object):
             raise NotImplementedError(
                 "Using remainder with broadcast is not currently available in Modin."
             )
-        caller_qc = caller._query_compiler.astype(
-            {col_name: out_dtype for col_name in caller._query_compiler.columns}
-        )
-        callee_qc = callee._query_compiler.astype(
-            {col_name: out_dtype for col_name in callee._query_compiler.columns}
-        )
+        caller_qc = maybe_convert_query_compiler_types(caller._query_compiler, out_dtype)
+        callee_qc = maybe_convert_query_compiler_types(callee._query_compiler, out_dtype)
         result = caller_qc.mod(callee_qc, **kwargs)
         if callee._query_compiler.eq(0).any() and numpy.issubdtype(
             out_dtype, numpy.integer
@@ -1963,21 +1917,15 @@ class array(object):
         check_kwargs(order=order, subok=subok, casting=casting, where=where)
         if is_scalar(x2):
             return fix_dtypes_and_determine_return(
-                self._query_compiler.astype(
-                    {col_name: out_dtype for col_name in self._query_compiler.columns}
-                ).sub(x2),
+                maybe_convert_query_compiler_types(self._query_compiler, out_dtype).sub(x2),
                 self._ndim,
                 dtype,
                 out,
                 where,
             )
         caller, callee, new_ndim, kwargs = self._binary_op(x2)
-        caller_qc = caller._query_compiler.astype(
-            {col_name: out_dtype for col_name in caller._query_compiler.columns}
-        )
-        callee_qc = callee._query_compiler.astype(
-            {col_name: out_dtype for col_name in callee._query_compiler.columns}
-        )
+        caller_qc = maybe_convert_query_compiler_types(caller._query_compiler, out_dtype)
+        callee_qc = maybe_convert_query_compiler_types(callee._query_compiler, out_dtype)
         if caller._query_compiler != self._query_compiler:
             # In this case, we are doing an operation that looks like this 1D_object - 2D_object.
             # For Modin to broadcast directly, we have to swap it so that the operation is actually
@@ -2012,21 +1960,15 @@ class array(object):
         check_kwargs(order=order, subok=subok, casting=casting, where=where)
         if is_scalar(x2):
             return fix_dtypes_and_determine_return(
-                self._query_compiler.astype(
-                    {col_name: out_dtype for col_name in self._query_compiler.columns}
-                ).rsub(x2),
+                maybe_convert_query_compiler_types(self._query_compiler, out_dtype).rsub(x2),
                 self._ndim,
                 dtype,
                 out,
                 where,
             )
         caller, callee, new_ndim, kwargs = self._binary_op(x2)
-        caller_qc = caller._query_compiler.astype(
-            {col_name: out_dtype for col_name in caller._query_compiler.columns}
-        )
-        callee_qc = callee._query_compiler.astype(
-            {col_name: out_dtype for col_name in callee._query_compiler.columns}
-        )
+        caller_qc = maybe_convert_query_compiler_types(caller._query_compiler, out_dtype)
+        callee_qc = maybe_convert_query_compiler_types(callee._query_compiler, out_dtype)
         if caller._query_compiler != self._query_compiler:
             # In this case, we are doing an operation that looks like this 1D_object - 2D_object.
             # For Modin to broadcast directly, we have to swap it so that the operation is actually
@@ -2058,9 +2000,7 @@ class array(object):
             if axis == 1:
                 raise numpy.AxisError(1, 1)
             target = where.where(self, 0) if isinstance(where, array) else self
-            result = target._query_compiler.astype(
-                {col_name: out_dtype for col_name in target._query_compiler.columns}
-            ).sum(axis=0, skipna=False)
+            result = maybe_convert_query_compiler_types(target._query_compiler, out_dtype).sum(axis=0, skipna=False)
             result = result.add(initial)
             if keepdims:
                 if out is not None:
@@ -2116,9 +2056,7 @@ class array(object):
         if axis > 1:
             raise numpy.AxisError(axis, 2)
         target = where.where(self, 0) if isinstance(where, array) else self
-        result = target._query_compiler.astype(
-            {col_name: out_dtype for col_name in target._query_compiler.columns}
-        ).sum(axis=axis, skipna=False)
+        result = maybe_convert_query_compiler_types(target._query_compiler, out_dtype).sum(axis=axis, skipna=False)
         result = result.add(initial)
         new_ndim = self._ndim - 1 if not keepdims else self._ndim
         if new_ndim == 0:
@@ -2278,10 +2216,10 @@ class array(object):
             if axis == 1:
                 raise numpy.AxisError(1, 1)
             if self._query_compiler.isna().any(axis=1).any(axis=0).to_numpy()[0, 0]:
-                na_row_map = self._query_compiler.isna().any(axis=1)
-                result = na_row_map.idxmax().to_numpy()[0, 0]
+                na_row_map = self._query_compiler.isna().any(axis=0)
+                result = na_row_map.idxmax()
             else:
-                result = self._query_compiler.idxmax(axis=1)
+                result = self._query_compiler.idxmax(axis=0)
             if keepdims:
                 if out is not None and out.shape != (1,):
                     raise ValueError(
@@ -2616,7 +2554,7 @@ class array(object):
     def transpose(self):
         if self._ndim == 1:
             return self
-        return array(_query_compiler=self._query_compiler.transpose(), _ndim=self._ndim)
+        return array(_query_compiler=self._query_compiler.transpose(), _ndim=self._ndim, _transposed=True)
 
     T = property(transpose)
 
@@ -2641,9 +2579,7 @@ class array(object):
                 "Modin does not support `astype` with `casting != unsafe`."
             )
         check_kwargs(order=order, subok=subok)
-        result = self._query_compiler.astype(
-            {col_name: dtype for col_name in self._query_compiler.columns}
-        )
+        result = maybe_convert_query_compiler_types(self._query_compiler, dtype)
         if not copy and subok and numpy.issubdtype(self.dtype, dtype):
             return self
         return array(_query_compiler=result, _ndim=self._ndim)
