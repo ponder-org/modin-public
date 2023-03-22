@@ -202,6 +202,8 @@ class array(object):
         if not self._query_compiler.columns.equals(desired_columns):
             self._query_compiler.columns = desired_columns
         new_dtype = new_dtype if dtype is None else dtype
+        if isinstance(new_dtype, pandas.Float64Dtype):
+            new_dtype = numpy.float64
         if not _transposed:
             self._query_compiler = maybe_convert_query_compiler_types(
                 self._query_compiler, new_dtype
