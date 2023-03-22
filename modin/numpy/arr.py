@@ -27,7 +27,6 @@ from modin.core.dataframe.algebra import (
     Reduce,
     Binary,
 )
-from modin.config import StorageFormat
 
 from .utils import try_convert_from_interoperable_type
 
@@ -1280,14 +1279,12 @@ class array(object):
         return target
 
     def mean(self, axis=None, dtype=None, out=None, keepdims=None, *, where=True):
-        print("ENTERED")
         out_dtype = (
             dtype
             if dtype is not None
             else (out.dtype if out is not None else self.dtype)
         )
         out_type = getattr(out_dtype, "type", out_dtype)
-        print("HAVE OUT_TYPE:", out_type)
         if isinstance(where, array) and issubclass(out_type, numpy.integer):
             out_dtype = numpy.float64
         if axis is not None and axis < 0:
@@ -1299,7 +1296,6 @@ class array(object):
             axis = new_axis
         check_kwargs(keepdims=keepdims, where=where)
         truthy_where = bool(where)
-        print("GOT WHERE")
         if self._ndim == 1:
             if axis == 1:
                 raise numpy.AxisError(1, 1)
@@ -1384,22 +1380,16 @@ class array(object):
             return result if truthy_where else numpy.nan
         if axis > 1:
             raise numpy.AxisError(axis, 2)
-        print("FIGURED OUT WE'RE DOING AXIS MEAN, AND HAVE GOOD AXIS")
         if isinstance(where, array):
             result = self._compute_masked_mean(where, out_dtype, axis)
         else:
-            print("HEADING INTO ASTYPE")
             result = maybe_convert_query_compiler_types(self._query_compiler, out_dtype)
-            print("OUT OF ASTYPE")
             result = result.mean(axis=axis, skipna=False)
-            print("DONE WITH MEAN!")
         new_ndim = self._ndim - 1 if not keepdims else self._ndim
         if new_ndim == 0:
             return result.to_numpy()[0, 0] if truthy_where else numpy.nan
         if not keepdims and axis != 1:
-            print("GOTTA .T")
             result = result.transpose()
-            print("DONE .T")
         if out is not None:
             out._update_inplace((numpy.ones_like(out) * numpy.nan)._query_compiler)
         if truthy_where or out is not None:
@@ -2291,7 +2281,7 @@ class array(object):
             if axis == 1:
                 raise numpy.AxisError(1, 1)
             if self._query_compiler.isna().any(axis=1).any(axis=0).to_numpy()[0, 0]:
-                na_row_map = self._query_compiler.isna().any(axis=0)
+                na_row_map = self._query_compiler.isna().any(axis=1)
                 result = na_row_map.idxmax()
             else:
                 result = self._query_compiler.idxmax(axis=0)
@@ -2361,7 +2351,9 @@ class array(object):
                 raise numpy.AxisError(1, 1)
             if self._query_compiler.isna().any(axis=1).any(axis=0).to_numpy()[0, 0]:
                 na_row_map = self._query_compiler.isna().any(axis=1)
-                result = na_row_map.idxmax().to_numpy()[0, 0]
+                # numpy apparently considers nan to be the minimum value in an array if present
+                # therefore, we use idxmax on the mask array to identify where nans are
+                result = na_row_map.idxmax()
             else:
                 result = self._query_compiler.idxmin(axis=0)
             if keepdims:
