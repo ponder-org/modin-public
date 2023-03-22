@@ -2082,8 +2082,10 @@ class BasePandasDataset(ClassLogger):
         """
         Percentage change between the current and a prior element.
         """
-        return self._query_compiler.pct_change(
-            periods, fill_method, limit, freq, **kwargs
+        return self.__constructor__(
+            query_compiler=self._query_compiler.pct_change(
+                periods, fill_method, limit, freq, **kwargs
+            )
         )
 
     def pipe(self, func, *args, **kwargs):  # noqa: PR01, RT01, D200
