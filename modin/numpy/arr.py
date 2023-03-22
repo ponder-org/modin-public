@@ -197,7 +197,7 @@ class array(object):
         # than pair columns with the same name and multiply them.)
         self._query_compiler = self._query_compiler.reset_index(drop=True)
         desired_columns = pandas.Index(
-            [str(pos) for pos in range(len(self._query_compiler.columns))]
+            [f"_{str(pos)}" for pos in range(len(self._query_compiler.columns))]
         )
         if not self._query_compiler.columns.equals(desired_columns):
             self._query_compiler.columns = desired_columns
