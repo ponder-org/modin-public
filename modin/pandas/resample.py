@@ -358,11 +358,17 @@ class Resampler(ClassLogger):
         )
 
     def size(self, _method="size"):
-        return self._dataframe.__constructor__(
+        from .series import Series
+
+        output_series = Series(
             query_compiler=self._query_compiler.resample_size(
                 self.resample_kwargs, None, None
             )
         )
+        if not isinstance(self._dataframe, Series):
+            # If input is a DataFrame, rename output Series to None
+            return output_series.rename(None)
+        return output_series
 
     def sem(self, *args, **kwargs):
         return self._dataframe.__constructor__(
