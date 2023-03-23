@@ -2082,6 +2082,9 @@ class BasePandasDataset(ClassLogger):
         """
         Percentage change between the current and a prior element.
         """
+        if not isinstance(periods, int):
+            raise ValueError(f"periods must be an int. got {type(periods)} instead")
+
         return self.__constructor__(
             query_compiler=self._query_compiler.pct_change(
                 periods, fill_method, limit, freq, **kwargs
