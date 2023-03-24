@@ -459,7 +459,14 @@ class DataFrameGroupBy(ClassLogger):
 
     @_inherit_docstrings(pandas.core.groupby.DataFrameGroupBy.pct_change)
     def pct_change(self, *args, **kwargs):
-        return self._default_to_pandas(lambda df: df.pct_change(*args, **kwargs))
+        # Should check for API level errors
+        return self._check_index_name(
+            self._wrap_aggregation(
+                type(self._query_compiler).groupby_pct_change,
+                agg_kwargs=kwargs,
+                agg_args=args,
+            )
+        )
 
     def filter(self, func, dropna=True, *args, **kwargs):
         return self._default_to_pandas(
