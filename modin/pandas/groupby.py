@@ -462,7 +462,7 @@ class DataFrameGroupBy(ClassLogger):
         # Should check for API level errors
         # Attempting to match pandas error behavior here
         if not isinstance(periods, int):
-            raise ValueError(f"periods must be an int. got {type(periods)} instead")
+            raise TypeError(f"periods must be an int. got {type(periods)} instead")
 
         return self._check_index_name(
             self._wrap_aggregation(
