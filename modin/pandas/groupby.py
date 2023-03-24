@@ -458,13 +458,18 @@ class DataFrameGroupBy(ClassLogger):
         return self._indices_cache
 
     @_inherit_docstrings(pandas.core.groupby.DataFrameGroupBy.pct_change)
-    def pct_change(self, *args, **kwargs):
+    def pct_change(self, periods=1, fill_method="pad", limit=None, freq=None, **kwargs):
         # Should check for API level errors
         return self._check_index_name(
             self._wrap_aggregation(
                 type(self._query_compiler).groupby_pct_change,
-                agg_kwargs=kwargs,
-                agg_args=args,
+                agg_kwargs=dict(
+                    periods=periods,
+                    fill_method=fill_method,
+                    limit=limit,
+                    freq=freq,
+                    **kwargs,
+                ),
             )
         )
 
