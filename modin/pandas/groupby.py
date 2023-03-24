@@ -460,6 +460,15 @@ class DataFrameGroupBy(ClassLogger):
     @_inherit_docstrings(pandas.core.groupby.DataFrameGroupBy.pct_change)
     def pct_change(self, periods=1, fill_method="pad", limit=None, freq=None, **kwargs):
         # Should check for API level errors
+        # Attempting to match pandas error behavior here
+        if not isinstance(periods, int):
+            raise ValueError(f"periods must be an int. got {type(periods)} instead")
+
+        # Attempting to match pandas error behavior here
+        for dtype in self._query_compiler.dtypes:
+            if not is_numeric_dtype(dtype):
+                raise TypeError(f"unsupported operand type for /: got {dtype}")
+
         return self._check_index_name(
             self._wrap_aggregation(
                 type(self._query_compiler).groupby_pct_change,
