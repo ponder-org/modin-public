@@ -1989,7 +1989,7 @@ class BasePandasDataset(ClassLogger):
         Return the memory usage of the `BasePandasDataset`.
         """
         return self._reduce_dimension(
-            self._query_compiler.memory_usage(index=index, deep=deep)
+            self._query_compiler.memory_usage(index=index, deep=deep).transpose()
         )
 
     def min(
