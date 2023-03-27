@@ -1099,8 +1099,21 @@ class DataFrameGroupBy(ClassLogger):
             )
         )
 
-    def diff(self):
-        return self._default_to_pandas(lambda df: df.diff())
+    def diff(self, periods, axis):
+        # Should check for API level errors
+        # Attempting to match pandas error behavior here
+        if not isinstance(periods, int):
+            raise TypeError(f"periods must be an int. got {type(periods)} instead")
+
+        return self._check_index_name(
+            self._wrap_aggregation(
+                type(self._query_compiler).groupby_diff,
+                agg_kwargs=dict(
+                    periods=periods,
+                    axis=axis,
+                ),
+            )
+        )
 
     def take(self, *args, **kwargs):
         return self._default_to_pandas(lambda df: df.take(*args, **kwargs))
@@ -1542,12 +1555,13 @@ class SeriesGroupBy(DataFrameGroupBy):
                 dropna=dropna,
             )
         )
-    
+
     def aggregate(self, func=None, *args, **kwargs):
         if isinstance(func, dict):
             raise SpecificationError("nested renamer is not supported")
         elif is_list_like(func):
-            from .dataframe import DataFrame            
+            from .dataframe import DataFrame
+
             result = DataFrame(
                 query_compiler=self._query_compiler.groupby_agg(
                     by=self._by,
@@ -1556,7 +1570,8 @@ class SeriesGroupBy(DataFrameGroupBy):
                     groupby_kwargs=self._kwargs,
                     agg_args=args,
                     agg_kwargs=kwargs,
-                ))
+                )
+            )
             # query compiler always gives result a multiindex on the axis with the
             # function names, but series always gets a regular index on the columns
             # because there is no need to identify which original column's aggregation
@@ -1568,6 +1583,7 @@ class SeriesGroupBy(DataFrameGroupBy):
             return super().aggregate(func, *args, **kwargs)
 
     agg = aggregate
+
 
 if IsExperimental.get():
     from modin.experimental.cloud.meta_magic import make_wrapped_class
