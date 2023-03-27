@@ -459,14 +459,20 @@ class DataFrameGroupBy(ClassLogger):
 
     @_inherit_docstrings(pandas.core.groupby.DataFrameGroupBy.pct_change)
     def pct_change(self, periods=1, fill_method="pad", limit=None, freq=None, **kwargs):
+        from .dataframe import DataFrame
+
         # Should check for API level errors
         # Attempting to match pandas error behavior here
         if not isinstance(periods, int):
             raise TypeError(f"periods must be an int. got {type(periods)} instead")
 
-        for dtype in self._df._get_dtypes():
-            if not is_numeric_dtype(dtype):
-                raise TypeError(f"unsupported operand type for -: got {dtype}")
+        if isinstance(self._df, Series):
+            if not is_numeric_dtype(self._df.dtypes):
+                raise TypeError(f"unsupported operand type for -: got {self._df.dtypes}")
+        elif isinstance(self._df, DataFrame):
+            for col, dtype in self._df.dtypes.items():
+                if col not in self._by.columns and not is_numeric_dtype(dtype):
+                    raise TypeError(f"unsupported operand type for -: got {dtype}")
 
         return self._check_index_name(
             self._wrap_aggregation(
@@ -1104,14 +1110,20 @@ class DataFrameGroupBy(ClassLogger):
         )
 
     def diff(self, periods=1, axis=0):
+        from .dataframe import DataFrame
+
         # Should check for API level errors
         # Attempting to match pandas error behavior here
         if not isinstance(periods, int):
             raise TypeError(f"periods must be an int. got {type(periods)} instead")
 
-        for dtype in self._df._get_dtypes():
-            if not is_numeric_dtype(dtype):
-                raise TypeError(f"unsupported operand type for -: got {dtype}")
+        if isinstance(self._df, Series):
+            if not is_numeric_dtype(self._df.dtypes):
+                raise TypeError(f"unsupported operand type for -: got {self._df.dtypes}")
+        elif isinstance(self._df, DataFrame):
+            for col, dtype in self._df.dtypes.items():
+                if col not in self._by.columns and not is_numeric_dtype(dtype):
+                    raise TypeError(f"unsupported operand type for -: got {dtype}")
 
         return self._check_index_name(
             self._wrap_aggregation(
