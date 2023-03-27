@@ -1099,7 +1099,7 @@ class DataFrameGroupBy(ClassLogger):
             )
         )
 
-    def diff(self, periods, axis):
+    def diff(self, periods=1, axis=0):
         # Should check for API level errors
         # Attempting to match pandas error behavior here
         if not isinstance(periods, int):
