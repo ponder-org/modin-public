@@ -468,7 +468,9 @@ class DataFrameGroupBy(ClassLogger):
 
         if isinstance(self._df, Series):
             if not is_numeric_dtype(self._df.dtypes):
-                raise TypeError(f"unsupported operand type for -: got {self._df.dtypes}")
+                raise TypeError(
+                    f"unsupported operand type for -: got {self._df.dtypes}"
+                )
         elif isinstance(self._df, DataFrame):
             for col, dtype in self._df.dtypes.items():
                 if col not in self._by.columns and not is_numeric_dtype(dtype):
@@ -1119,7 +1121,9 @@ class DataFrameGroupBy(ClassLogger):
 
         if isinstance(self._df, Series):
             if not is_numeric_dtype(self._df.dtypes):
-                raise TypeError(f"unsupported operand type for -: got {self._df.dtypes}")
+                raise TypeError(
+                    f"unsupported operand type for -: got {self._df.dtypes}"
+                )
         elif isinstance(self._df, DataFrame):
             for col, dtype in self._df.dtypes.items():
                 if col not in self._by.columns and not is_numeric_dtype(dtype):
