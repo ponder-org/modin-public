@@ -339,7 +339,7 @@ class DataFrameGroupBy(ClassLogger):
         )
 
     def idxmax(self, axis=0, skipna=True, numeric_only=True):
-        if any(d == np.dtype("O") for d in self._df.dtypes):
+        if any(d == np.dtype("O") for d in self._df._get_dtypes()):
             raise TypeError("reduce operation 'argmin' not allowed for this dtype")
 
         return self._wrap_aggregation(
@@ -678,7 +678,7 @@ class DataFrameGroupBy(ClassLogger):
         return self.fillna(limit=limit, method="bfill")
 
     def idxmin(self, axis=0, skipna=True, numeric_only=True):
-        if any(d == np.dtype("O") for d in self._df.dtypes):
+        if any(d == np.dtype("O") for d in self._df._get_dtypes()):
             raise TypeError("reduce operation 'argmin' not allowed for this dtype")
 
         return self._wrap_aggregation(
