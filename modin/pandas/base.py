@@ -938,7 +938,11 @@ class BasePandasDataset(ClassLogger):
         """
         Convert time series to specified frequency.
         """
-        return self._query_compiler.asfreq(freq, method, how, normalize, fill_value)
+        return self.__constructor__(
+            query_compiler=self._query_compiler.asfreq(
+                freq, method, how, normalize, fill_value
+            )
+        )
 
     def asof(self, where, subset=None):  # noqa: PR01, RT01, D200
         """
