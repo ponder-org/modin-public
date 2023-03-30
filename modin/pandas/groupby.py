@@ -338,8 +338,15 @@ class DataFrameGroupBy(ClassLogger):
             agg_kwargs=dict(min_count=min_count),
         )
 
-    def idxmax(self):
-        return self._default_to_pandas(lambda df: df.idxmax())
+    def idxmax(self, axis=0, skipna=True, numeric_only=True):
+        if any(d == np.dtype("O") for d in self._df._get_dtypes()):
+            raise TypeError("reduce operation 'argmin' not allowed for this dtype")
+
+        return self._wrap_aggregation(
+            type(self._query_compiler).groupby_idxmax,
+            agg_kwargs=dict(axis=axis, skipna=skipna),
+            numeric_only=numeric_only,
+        )
 
     @property
     def ndim(self):
@@ -468,7 +475,9 @@ class DataFrameGroupBy(ClassLogger):
 
         if isinstance(self._df, Series):
             if not is_numeric_dtype(self._df.dtypes):
-                raise TypeError(f"unsupported operand type for -: got {self._df.dtypes}")
+                raise TypeError(
+                    f"unsupported operand type for -: got {self._df.dtypes}"
+                )
         elif isinstance(self._df, DataFrame):
             for col, dtype in self._df.dtypes.items():
                 if col not in self._by.columns and not is_numeric_dtype(dtype):
@@ -668,8 +677,15 @@ class DataFrameGroupBy(ClassLogger):
     def bfill(self, limit=None):
         return self.fillna(limit=limit, method="bfill")
 
-    def idxmin(self):
-        return self._default_to_pandas(lambda df: df.idxmin())
+    def idxmin(self, axis=0, skipna=True, numeric_only=True):
+        if any(d == np.dtype("O") for d in self._df._get_dtypes()):
+            raise TypeError("reduce operation 'argmin' not allowed for this dtype")
+
+        return self._wrap_aggregation(
+            type(self._query_compiler).groupby_idxmin,
+            agg_kwargs=dict(axis=axis, skipna=skipna),
+            numeric_only=numeric_only,
+        )
 
     def prod(self, numeric_only=None, min_count=0):
         return self._wrap_aggregation(
@@ -1119,7 +1135,9 @@ class DataFrameGroupBy(ClassLogger):
 
         if isinstance(self._df, Series):
             if not is_numeric_dtype(self._df.dtypes):
-                raise TypeError(f"unsupported operand type for -: got {self._df.dtypes}")
+                raise TypeError(
+                    f"unsupported operand type for -: got {self._df.dtypes}"
+                )
         elif isinstance(self._df, DataFrame):
             for col, dtype in self._df.dtypes.items():
                 if col not in self._by.columns and not is_numeric_dtype(dtype):
