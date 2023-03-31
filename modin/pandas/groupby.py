@@ -182,11 +182,11 @@ class DataFrameGroupBy(ClassLogger):
         if not isinstance(fn, str) and isinstance(fn, Iterable):
             return [self._try_get_str_func(f) for f in fn]
         if fn is np.max:
-            # np.max is called "max"
-            return "max"
+            # np.max is called "amax", so it's not a method of the groupby object.
+            return "amax"
         elif fn is np.min:
-            # np.min is called "min"
-            return "min"
+            # np.min is called "amin", so it's not a method of the groupby object.
+            return "amin"
         return fn.__name__ if callable(fn) and fn.__name__ in dir(self) else fn
 
     @property
