@@ -274,6 +274,26 @@ class Rolling(ClassLogger):
             )
         )
 
+    def rank(
+        self,
+        method="average",
+        ascending=True,
+        pct=False,
+        numeric_only=False,
+        **kwargs
+    ):
+        return self._dataframe.__constructor__(
+            query_compiler=self._query_compiler.rolling_rank(
+                self.axis,
+                self.rolling_args,
+                method,
+                ascending,
+                pct,
+                numeric_only,
+                **kwargs
+            )
+        )
+
 
 @_inherit_docstrings(
     pandas.core.window.expanding.Expanding,
@@ -386,5 +406,32 @@ class Expanding(ClassLogger):
         return self._dataframe.__constructor__(
             query_compiler=self._query_compiler.expanding_kurt(
                 self.axis, self.expanding_args, **kwargs
+            )
+        )
+
+    def quantile(self, quantile, interpolation="linear", **kwargs):
+        return self._dataframe.__constructor__(
+            query_compiler=self._query_compiler.expanding_quantile(
+                self.axis, self.expanding_args, quantile, interpolation, **kwargs
+            )
+        )
+
+    def rank(
+        self,
+        method="average",
+        ascending=True,
+        pct=False,
+        numeric_only=False,
+        **kwargs
+    ):
+        return self._dataframe.__constructor__(
+            query_compiler=self._query_compiler.expanding_rank(
+                self.axis,
+                self.expanding_args,
+                method,
+                ascending,
+                pct,
+                numeric_only,
+                **kwargs
             )
         )
