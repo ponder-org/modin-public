@@ -1415,7 +1415,7 @@ class BasePandasDataset(ClassLogger):
                     index_columns.remove(l)
             else:
                 index_columns.remove(level)
-            result = result.reset_index().drop(columns=[level]).set_index(index_columns)
+            result = result.reset_index().drop(columns=level).set_index(index_columns)
         else:
             raise NotImplementedError("'axis=1' is not supported yet")
         return result
