@@ -726,7 +726,10 @@ class array(object):
                     matched_dimension = 0
                 elif self.shape[1] == other.shape[1]:
                     matched_dimension = 1
-                    broadcast = False
+                    if other.shape[0] == 1:
+                        return self._binary_op(other[0])
+                    elif self.shape[0] == 1:
+                        return self[0]._binary_op(other)
                 else:
                     raise ValueError(
                         f"operands could not be broadcast together with shapes {self.shape} {other.shape}"
