@@ -503,117 +503,182 @@ class DatetimeProperties(ClassLogger):
         self._series = series
         self._query_compiler = series._query_compiler
 
+    def _create_series_with_parent(self, query_compiler):
+        # Certain property methods are only accessing specific parts of the datetime
+        # object. Thus, we should make sure that the parent of the newly created
+        # series matches the original parent. This is useful for groupby, when we
+        # need to know whether a DataFrame already has the columns in the by object.
+        ser = Series(query_compiler=query_compiler)
+        ser._parent = self._series._parent
+        return ser
+
     @property
     def date(self):
-        return Series(query_compiler=self._query_compiler.dt_date())
+        return self._create_series_with_parent(
+            query_compiler=self._query_compiler.dt_date()
+        )
 
     @property
     def time(self):
-        return Series(query_compiler=self._query_compiler.dt_time())
+        return self._create_series_with_parent(
+            query_compiler=self._query_compiler.dt_time()
+        )
 
     @property
     def timetz(self):
-        return Series(query_compiler=self._query_compiler.dt_timetz())
+        return self._create_series_with_parent(
+            query_compiler=self._query_compiler.dt_timetz()
+        )
 
     @property
     def year(self):
-        return Series(query_compiler=self._query_compiler.dt_year())
+        return self._create_series_with_parent(
+            query_compiler=self._query_compiler.dt_year()
+        )
 
     @property
     def month(self):
-        return Series(query_compiler=self._query_compiler.dt_month())
+        return self._create_series_with_parent(
+            query_compiler=self._query_compiler.dt_month()
+        )
 
     @property
     def day(self):
-        return Series(query_compiler=self._query_compiler.dt_day())
+        return self._create_series_with_parent(
+            query_compiler=self._query_compiler.dt_day()
+        )
 
     @property
     def hour(self):
-        return Series(query_compiler=self._query_compiler.dt_hour())
+        return self._create_series_with_parent(
+            query_compiler=self._query_compiler.dt_hour()
+        )
 
     @property
     def minute(self):
-        return Series(query_compiler=self._query_compiler.dt_minute())
+        return self._create_series_with_parent(
+            query_compiler=self._query_compiler.dt_minute()
+        )
 
     @property
     def second(self):
-        return Series(query_compiler=self._query_compiler.dt_second())
+        return self._create_series_with_parent(
+            query_compiler=self._query_compiler.dt_second()
+        )
 
     @property
     def microsecond(self):
-        return Series(query_compiler=self._query_compiler.dt_microsecond())
+        return self._create_series_with_parent(
+            query_compiler=self._query_compiler.dt_microsecond()
+        )
 
     @property
     def nanosecond(self):
-        return Series(query_compiler=self._query_compiler.dt_nanosecond())
+        return self._create_series_with_parent(
+            query_compiler=self._query_compiler.dt_nanosecond()
+        )
 
     @property
     def week(self):
-        return Series(query_compiler=self._query_compiler.dt_week())
+        return self._create_series_with_parent(
+            query_compiler=self._query_compiler.dt_week()
+        )
 
     @property
     def weekofyear(self):
-        return Series(query_compiler=self._query_compiler.dt_weekofyear())
+        return self._create_series_with_parent(
+            query_compiler=self._query_compiler.dt_weekofyear()
+        )
 
     @property
     def day_of_week(self):
-        return Series(query_compiler=self._query_compiler.dt_day_of_week())
+        return self._create_series_with_parent(
+            query_compiler=self._query_compiler.dt_day_of_week()
+        )
 
     @property
     def dayofweek(self):
-        return Series(query_compiler=self._query_compiler.dt_dayofweek())
+        return self._create_series_with_parent(
+            query_compiler=self._query_compiler.dt_dayofweek()
+        )
 
     @property
     def weekday(self):
-        return Series(query_compiler=self._query_compiler.dt_weekday())
+        return self._create_series_with_parent(
+            query_compiler=self._query_compiler.dt_weekday()
+        )
 
     @property
     def day_of_year(self):
-        return Series(query_compiler=self._query_compiler.dt_day_of_year())
+        return self._create_series_with_parent(
+            query_compiler=self._query_compiler.dt_day_of_year()
+        )
 
     @property
     def dayofyear(self):
-        return Series(query_compiler=self._query_compiler.dt_dayofyear())
+        return self._create_series_with_parent(
+            query_compiler=self._query_compiler.dt_dayofyear()
+        )
 
     @property
     def quarter(self):
-        return Series(query_compiler=self._query_compiler.dt_quarter())
+        return self._create_series_with_parent(
+            query_compiler=self._query_compiler.dt_quarter()
+        )
 
     @property
     def is_month_start(self):
-        return Series(query_compiler=self._query_compiler.dt_is_month_start())
+        return self._create_series_with_parent(
+            query_compiler=self._query_compiler.dt_is_month_start()
+        )
 
     @property
     def is_month_end(self):
-        return Series(query_compiler=self._query_compiler.dt_is_month_end())
+        return self._create_series_with_parent(
+            query_compiler=self._query_compiler.dt_is_month_end()
+        )
 
     @property
     def is_quarter_start(self):
-        return Series(query_compiler=self._query_compiler.dt_is_quarter_start())
+        return self._create_series_with_parent(
+            query_compiler=self._query_compiler.dt_is_quarter_start()
+        )
 
     @property
     def is_quarter_end(self):
-        return Series(query_compiler=self._query_compiler.dt_is_quarter_end())
+        return self._create_series_with_parent(
+            query_compiler=self._query_compiler.dt_is_quarter_end()
+        )
 
     @property
     def is_year_start(self):
-        return Series(query_compiler=self._query_compiler.dt_is_year_start())
+        return self._create_series_with_parent(
+            query_compiler=self._query_compiler.dt_is_year_start()
+        )
 
     @property
     def is_year_end(self):
-        return Series(query_compiler=self._query_compiler.dt_is_year_end())
+        return self._create_series_with_parent(
+            query_compiler=self._query_compiler.dt_is_year_end()
+        )
 
     @property
     def is_leap_year(self):
-        return Series(query_compiler=self._query_compiler.dt_is_leap_year())
+        return self._create_series_with_parent(
+            query_compiler=self._query_compiler.dt_is_leap_year()
+        )
 
     @property
     def daysinmonth(self):
-        return Series(query_compiler=self._query_compiler.dt_daysinmonth())
+        return self._create_series_with_parent(
+            query_compiler=self._query_compiler.dt_daysinmonth()
+        )
 
     @property
     def days_in_month(self):
-        return Series(query_compiler=self._query_compiler.dt_days_in_month())
+        return self._create_series_with_parent(
+            query_compiler=self._query_compiler.dt_days_in_month()
+        )
 
     @property
     def tz(self) -> "tzinfo | None":
@@ -676,19 +741,27 @@ class DatetimeProperties(ClassLogger):
 
     @property
     def seconds(self):
-        return Series(query_compiler=self._query_compiler.dt_seconds())
+        return self._create_series_with_parent(
+            query_compiler=self._query_compiler.dt_seconds()
+        )
 
     @property
     def days(self):
-        return Series(query_compiler=self._query_compiler.dt_days())
+        return self._create_series_with_parent(
+            query_compiler=self._query_compiler.dt_days()
+        )
 
     @property
     def microseconds(self):
-        return Series(query_compiler=self._query_compiler.dt_microseconds())
+        return self._create_series_with_parent(
+            query_compiler=self._query_compiler.dt_microseconds()
+        )
 
     @property
     def nanoseconds(self):
-        return Series(query_compiler=self._query_compiler.dt_nanoseconds())
+        return self._create_series_with_parent(
+            query_compiler=self._query_compiler.dt_nanoseconds()
+        )
 
     @property
     def components(self):
@@ -698,15 +771,21 @@ class DatetimeProperties(ClassLogger):
 
     @property
     def qyear(self):
-        return Series(query_compiler=self._query_compiler.dt_qyear())
+        return self._create_series_with_parent(
+            query_compiler=self._query_compiler.dt_qyear()
+        )
 
     @property
     def start_time(self):
-        return Series(query_compiler=self._query_compiler.dt_start_time())
+        return self._create_series_with_parent(
+            query_compiler=self._query_compiler.dt_start_time()
+        )
 
     @property
     def end_time(self):
-        return Series(query_compiler=self._query_compiler.dt_end_time())
+        return self._create_series_with_parent(
+            query_compiler=self._query_compiler.dt_end_time()
+        )
 
     def to_timestamp(self, *args, **kwargs):
         return Series(

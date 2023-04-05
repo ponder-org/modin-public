@@ -908,7 +908,7 @@ class DataFrameGroupBy(ClassLogger):
             self._df,
             self._by,
             self._axis,
-            drop=False,
+            drop=self._drop,
             idx_name=None,
             squeeze=self._squeeze,
             **self._kwargs,
