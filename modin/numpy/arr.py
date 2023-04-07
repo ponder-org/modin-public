@@ -716,7 +716,8 @@ class array(object):
                 raise ValueError(
                     f"operands could not be broadcast together with shapes {self.shape} {other.shape}"
                 )
-            return (caller, callee, caller._ndim, {"broadcast": broadcast, "axis": 1})
+            return (caller, callee, caller._ndim, {"broadcast": broadcast, "axis": 1,
+                                                   "sort_columns":False})
         else:
             if self.shape != other.shape:
                 # In this case, we either have two mismatched objects trying to do an operation
@@ -739,14 +740,16 @@ class array(object):
                         self,
                         other,
                         self._ndim,
-                        {"broadcast": broadcast, "axis": matched_dimension},
+                        {"broadcast": broadcast, "axis": matched_dimension, 
+                         "sort_columns":False},
                     )
                 else:
                     raise ValueError(
                         f"operands could not be broadcast together with shapes {self.shape} {other.shape}"
                     )
             else:
-                return (self, other, self._ndim, {"broadcast": False})
+                return (self, other, self._ndim, {"broadcast": False, 
+                                                  "sort_columns":False})
 
     def _greater(
         self,
