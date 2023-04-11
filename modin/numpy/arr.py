@@ -384,6 +384,39 @@ class array(object):
             return NotImplemented
         return modin_func(*args, **kwargs)
 
+    @classmethod
+    def __torch_function__(cls, func, types, args=(), kwargs=None):
+        if kwargs is None:
+            kwargs = {}
+        from . import array_creation as creation, array_shaping as shaping, math
+
+        func_name = func.__name__
+        modin_func = None
+        TORCH_ALIASES = {
+            "abs": math.absolute,
+            "add": math.add,
+            "mul": math.multiply,
+            "div": math.divide,
+            "sub": math.subtract,
+            "ge": cls.__ge__,
+            "gt": cls.__gt__,
+            "le": cls.__le__,
+            "lt": cls.__lt__,
+            "eq": cls.__eq__,
+            "ne": cls.__ne__,
+        }
+        if func_name in TORCH_ALIASES:
+            modin_func = TORCH_ALIASES[func_name]
+        elif hasattr(math, func_name):
+            modin_func = getattr(math, func_name)
+        elif hasattr(shaping, func_name):
+            modin_func = getattr(shaping, func_name)
+        elif hasattr(creation, func_name):
+            modin_func = getattr(creation, func_name)
+        if modin_func is None:
+            return NotImplemented
+        return modin_func(*args, **kwargs)
+
     def where(self, x=None, y=None):
         if not is_bool_dtype(self.dtype):
             raise NotImplementedError(
@@ -716,8 +749,12 @@ class array(object):
                 raise ValueError(
                     f"operands could not be broadcast together with shapes {self.shape} {other.shape}"
                 )
-            return (caller, callee, caller._ndim, {"broadcast": broadcast, "axis": 1,
-                                                   "sort_columns":False})
+            return (
+                caller,
+                callee,
+                caller._ndim,
+                {"broadcast": broadcast, "axis": 1, "sort_columns": False},
+            )
         else:
             if self.shape != other.shape:
                 # In this case, we either have two mismatched objects trying to do an operation
@@ -740,16 +777,23 @@ class array(object):
                         self,
                         other,
                         self._ndim,
-                        {"broadcast": broadcast, "axis": matched_dimension, 
-                         "sort_columns":False},
+                        {
+                            "broadcast": broadcast,
+                            "axis": matched_dimension,
+                            "sort_columns": False,
+                        },
                     )
                 else:
                     raise ValueError(
                         f"operands could not be broadcast together with shapes {self.shape} {other.shape}"
                     )
             else:
-                return (self, other, self._ndim, {"broadcast": False, 
-                                                  "sort_columns":False})
+                return (
+                    self,
+                    other,
+                    self._ndim,
+                    {"broadcast": False, "sort_columns": False},
+                )
 
     def _greater(
         self,
