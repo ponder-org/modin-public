@@ -644,11 +644,11 @@ class _LocIndexer(_LocationIndexerBase):
             if key.start is None and key.stop is None:
                 return self.df 
             if key.start is None:
-                new_index = (self.df.index <= key.stop)
-                return self.df.iloc[ new_index.start : ( new_index.stop + 1) ]
+                arr = (self.df.index <= key.stop)
+                return self.df.iloc[ arr ]
             if key.stop is None:
-                new_index = (self.df.index >= key.start)
-                return self.df.iloc[ new_index.start : ( new_index.stop + 1) ]
+                arr  = (self.df.index >= key.start)
+                return self.df.iloc[ arr ]
             # Works for a positional mapping
             return self.df.iloc[ key.start : ( key.stop + 1) ]
 
