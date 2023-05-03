@@ -642,15 +642,12 @@ class _LocIndexer(_LocationIndexerBase):
             if key.step is not None:
                 raise NotImplementedError("Slice with step not supported for loc")
             if key.start is None and key.stop is None:
-                return self.df 
-            if key.start is None:
-                arr = (self.df.index <= key.stop)
-                return self.df.iloc[ arr ]
-            if key.stop is None:
-                arr  = (self.df.index >= key.start)
-                return self.df.iloc[ arr ]
-            # Works for a positional mapping
-            return self.df.iloc[ key.start : ( key.stop + 1) ]
+                return self.df
+
+            arr_default = np.full(len(self.df.index), True)
+            arr_stop = (self.df.index <= key.stop) if key.stop is not None else arr_default
+            arr_start = (self.df.index >= key.start) if key.start is not None else arr_default
+            return self.df.iloc[np.logical_and(arr_start, arr_stop)]
 
         if (
             isinstance(key, tuple)
@@ -1010,7 +1007,6 @@ class _iLocIndexer(_LocationIndexerBase):
         col_scalar = is_scalar(col_loc)
         self._check_dtypes(row_loc)
         self._check_dtypes(col_loc)
-
         if isinstance(row_loc, Series) and is_boolean_array(row_loc):
             return self._handle_boolean_masking(row_loc, col_loc)
 
