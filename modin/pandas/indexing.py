@@ -633,22 +633,6 @@ class _LocIndexer(_LocationIndexerBase):
         if self.df.empty:
             return self.df._default_to_pandas(lambda df: df.loc[key])
 
-        # Limited support for slicing operations on loc, and predominantly
-        # only with positional mapping by translating it to an iloc. To
-        # support proper labels (sorted) we will need to translate the
-        # existing index to a mask OR translate the expression to a set of
-        # predicates.
-        if is_slice(key):
-            if key.step is not None:
-                raise NotImplementedError("Slice with step not supported for loc")
-            if key.start is None and key.stop is None:
-                return self.df
-
-            arr_default = np.full(len(self.df.index), True)
-            arr_stop = (self.df.index <= key.stop) if key.stop is not None else arr_default
-            arr_start = (self.df.index >= key.start) if key.start is not None else arr_default
-            return self.df.iloc[np.logical_and(arr_start, arr_stop)]
-
         if (
             isinstance(key, tuple)
             and len(key) == 2
