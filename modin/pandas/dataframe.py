@@ -2055,17 +2055,19 @@ class DataFrame(BasePandasDataset):
             return self.groupby(level=level, axis=axis, sort=False).sum(
                 numeric_only=numeric_only, min_count=min_count
             )
-        sum_result = (
-            data._query_compiler.sum_min_count(
-                axis=axis,
-                skipna=skipna,
-                level=level,
-                numeric_only=numeric_only,
-                min_count=min_count,
-                **kwargs,
+        if min_count > 1:
+            return data._reduce_dimension(
+                data._query_compiler.sum_min_count(
+                    axis=axis,
+                    skipna=skipna,
+                    level=level,
+                    numeric_only=numeric_only,
+                    min_count=min_count,
+                    **kwargs,
+                )
             )
-            if min_count > 1
-            else data._query_compiler.sum(
+        return data._reduce_dimension(
+            data._query_compiler.sum(
                 axis=axis,
                 skipna=skipna,
                 level=level,
@@ -2074,9 +2076,6 @@ class DataFrame(BasePandasDataset):
                 **kwargs,
             )
         )
-        if axis == 0:
-            sum_result = sum_result.transpose()
-        return data._reduce_dimension(sum_result)
 
     def to_feather(self, path, **kwargs):  # pragma: no cover # noqa: PR01, RT01, D200
         """
@@ -3014,7 +3013,7 @@ class DataFrame(BasePandasDataset):
             if not is_list_like(name):
                 name = [name]
             renamed = renamed.reset_index()
-            mapper = {n1:n2 for n1, n2 in zip(renamed.columns, list(name))}
+            mapper = {n1: n2 for n1, n2 in zip(renamed.columns, list(name))}
             renamed = renamed.rename(columns=mapper).set_index(list(name))
         else:
             raise NotImplementedError("'axis=1' is not supported yet")
