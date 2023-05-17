@@ -769,11 +769,10 @@ class BasePandasDataset(ClassLogger):
                         "level > 0 or level < -1 only valid with MultiIndex"
                     )
                 return self.groupby(level=level, axis=axis, sort=False).all(**kwargs)
-            compiler = self._query_compiler.all(
-                axis=axis, bool_only=bool_only, skipna=skipna, level=level, **kwargs
-            )
             return self._reduce_dimension(
-                compiler.transpose() if axis == 0 else compiler
+                self._query_compiler.all(
+                    axis=axis, bool_only=bool_only, skipna=skipna, level=level, **kwargs
+                )
             )
         else:
             if bool_only:
@@ -791,7 +790,7 @@ class BasePandasDataset(ClassLogger):
                         skipna=skipna,
                         level=level,
                         **kwargs,
-                    ).transpose()
+                    )
                 )
             if isinstance(result, BasePandasDataset):
                 return result.all(
@@ -833,11 +832,10 @@ class BasePandasDataset(ClassLogger):
                         "level > 0 or level < -1 only valid with MultiIndex"
                     )
                 return self.groupby(level=level, axis=axis, sort=False).any(**kwargs)
-            compiler = self._query_compiler.any(
-                axis=axis, bool_only=bool_only, skipna=skipna, level=level, **kwargs
-            )
             return self._reduce_dimension(
-                compiler.transpose() if axis == 0 else compiler
+                self._query_compiler.any(
+                    axis=axis, bool_only=bool_only, skipna=skipna, level=level, **kwargs
+                )
             )
         else:
             if bool_only:
@@ -853,7 +851,7 @@ class BasePandasDataset(ClassLogger):
                         skipna=skipna,
                         level=level,
                         **kwargs,
-                    ).transpose()
+                    )
                 )
             if isinstance(result, BasePandasDataset):
                 return result.any(
@@ -1178,10 +1176,11 @@ class BasePandasDataset(ClassLogger):
             if not frame._query_compiler.has_multiindex(axis=axis):
                 raise TypeError("Can only count levels on hierarchical columns.")
             return frame.groupby(level=level, axis=axis, sort=True).count()
-        compiler = frame._query_compiler.count(
-            axis=axis, level=level, numeric_only=numeric_only
+        return frame._reduce_dimension(
+            frame._query_compiler.count(
+                axis=axis, level=level, numeric_only=numeric_only
+            )
         )
-        return frame._reduce_dimension(compiler.transpose() if axis == 0 else compiler)
 
     def cummax(self, axis=None, skipna=True, *args, **kwargs):  # noqa: PR01, RT01, D200
         """
@@ -1831,14 +1830,16 @@ class BasePandasDataset(ClassLogger):
             if numeric_only is None or numeric_only
             else self
         )
-        compiler = data._query_compiler.kurt(
-            axis=axis,
-            skipna=skipna,
-            level=level,
-            numeric_only=numeric_only,
-            **kwargs,
+
+        return self._reduce_dimension(
+            data._query_compiler.kurt(
+                axis=axis,
+                skipna=skipna,
+                level=level,
+                numeric_only=numeric_only,
+                **kwargs,
+            )
         )
-        return self._reduce_dimension(compiler.transpose() if axis == 0 else compiler)
 
     kurtosis = kurt
 
@@ -1936,14 +1937,15 @@ class BasePandasDataset(ClassLogger):
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
         axis = self._get_axis_number(axis)
         data = self._validate_dtypes_min_max(axis, numeric_only)
-        compiler = data._query_compiler.max(
-            axis=axis,
-            skipna=skipna,
-            level=level,
-            numeric_only=numeric_only,
-            **kwargs,
+        return data._reduce_dimension(
+            data._query_compiler.max(
+                axis=axis,
+                skipna=skipna,
+                level=level,
+                numeric_only=numeric_only,
+                **kwargs,
+            )
         )
-        return data._reduce_dimension(compiler.transpose() if axis == 0 else compiler)
 
     def _stat_operation(
         self,
@@ -2009,14 +2011,14 @@ class BasePandasDataset(ClassLogger):
             numeric_only=numeric_only,
             **kwargs,
         )
-        return self._reduce_dimension(result_qc.transpose() if axis == 0 else result_qc)
+        return self._reduce_dimension(result_qc)
 
     def memory_usage(self, index=True, deep=False):  # noqa: PR01, RT01, D200
         """
         Return the memory usage of the `BasePandasDataset`.
         """
         return self._reduce_dimension(
-            self._query_compiler.memory_usage(index=index, deep=deep).transpose()
+            self._query_compiler.memory_usage(index=index, deep=deep)
         )
 
     def min(
@@ -2033,14 +2035,15 @@ class BasePandasDataset(ClassLogger):
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
         axis = self._get_axis_number(axis)
         data = self._validate_dtypes_min_max(axis, numeric_only)
-        compiler = data._query_compiler.min(
-            axis=axis,
-            skipna=skipna,
-            level=level,
-            numeric_only=numeric_only,
-            **kwargs,
+        return data._reduce_dimension(
+            data._query_compiler.min(
+                axis=axis,
+                skipna=skipna,
+                level=level,
+                numeric_only=numeric_only,
+                **kwargs,
+            )
         )
-        return data._reduce_dimension(compiler.transpose() if axis == 0 else compiler)
 
     def mod(
         self, other, axis="columns", level=None, fill_value=None
@@ -2057,11 +2060,10 @@ class BasePandasDataset(ClassLogger):
         Get the mode(s) of each element along the selected axis.
         """
         axis = self._get_axis_number(axis)
-        compiler = self._query_compiler.mode(
-            axis=axis, numeric_only=numeric_only, dropna=dropna
-        )
         return self.__constructor__(
-            query_compiler=compiler.transpose() if axis == 0 else compiler
+            query_compiler=self._query_compiler.mode(
+                axis=axis, numeric_only=numeric_only, dropna=dropna
+            )
         )
 
     def mul(
@@ -2095,9 +2097,8 @@ class BasePandasDataset(ClassLogger):
         Return number of unique elements in the `BasePandasDataset`.
         """
         axis = self._get_axis_number(axis)
-        compiler = self._query_compiler.nunique(axis=axis, dropna=dropna)
         return self._reduce_dimension(
-            compiler.transpose() if self._get_axis_number(axis) == 0 else compiler
+            self._query_compiler.nunique(axis=axis, dropna=dropna)
         )
 
     def pct_change(
