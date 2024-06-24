@@ -105,8 +105,8 @@ def enable_logging(
 
         assert isinstance(modin_layer, str), "modin_layer is somehow not a string!"
 
-        start_line = f"START::{modin_layer.upper()}::{name or obj.__name__}"
-        stop_line = f"STOP::{modin_layer.upper()}::{name or obj.__name__}"
+        start_line = f"STAGE: START, METHOD: {name or obj.__name__}"
+        stop_line = f"STAGE: STOP, METHOD: {name or obj.__name__}"
 
         @wraps(obj)
         def run_and_log(*args: Tuple, **kwargs: Dict) -> Any:
@@ -132,8 +132,14 @@ def enable_logging(
             logger_level(start_line)
             try:
                 result = obj(*args, **kwargs)
-            except BaseException:
-                get_logger("modin.logger.errors").exception(stop_line)
+            except BaseException as e:
+                import traceback
+
+                get_logger("modin.logger.errors").info(
+                    f"ERROR_TYPE:{str(type(e))}, "
+                    f"ERROR_MESSAGE: {str(e)}, "
+                    f"METHOD: {name or obj.__name__}")
+                logger_level(stop_line)
                 raise
             finally:
                 logger_level(stop_line)
